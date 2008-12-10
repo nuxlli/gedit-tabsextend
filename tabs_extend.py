@@ -24,6 +24,18 @@ import gedit
 # TODO: Menu Close All (Ctrl+Shit+w)
 # TODO: Menu Close Others (Ctrl+Shit+o)
 
+# Find widget by name
+def lookup_widget(base, widget_name):
+  widgets = []
+
+  for widget in base.get_children():
+    if widget.get_name() == widget_name:
+      widgets.append(widget)
+    if isinstance(widget, gtk.Container):
+      widgets += lookup_widget(widget, widget_name)
+
+  return widgets
+
 class TabsExtendWindowHelper:
   handler_ids = []
 
@@ -47,9 +59,8 @@ class TabsExtendWindowHelper:
   def update_ui(self):
     pass
 
-  # TODO: User de finds method for search gedit noteboook
   def get_notebook(self):
-    return self.window.get_children()[0].get_children()[2].get_children()[1].get_children()[0]
+    return lookup_widget(self.window, 'GeditNotebook')[0]
 
   def add_all(self):
     for x in range(self.notebook.get_n_pages()):
