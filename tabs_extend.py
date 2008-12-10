@@ -20,9 +20,6 @@
 import gtk
 import gedit
 
-# TODO: Menu Close All (Ctrl+Shit+w)
-# TODO: Menu Close Others (Ctrl+Shit+o)
-
 # Find widget by name
 def lookup_widget(base, widget_name):
   widgets = []
@@ -84,7 +81,7 @@ class TabsExtendWindowHelper:
       'CloseAll', # name
       'gtk-close', # icon stock id
       'Close all', # label
-      '<Ctrl><Shift>J',# accelerator
+      '<Ctrl><Shift>W',# accelerator
       'Open the folder containing the current document', # tooltip
       self.on_close_all # callback
     )
@@ -93,7 +90,7 @@ class TabsExtendWindowHelper:
       'CloseOthers', # name
       'gtk-close', # icon stock id
       'Close others', # label
-      '<Ctrl><Shift>K',# accelerator
+      '<Ctrl><Shift>O',# accelerator
       'Open the folder containing the current document', # tooltip
       self.on_close_outher # callback
     )
@@ -212,8 +209,6 @@ class TabsExtendWindowHelper:
         self.window.close_tab(tab)
 
       self.update_ui()
-
-#nb.get_nth_page(1).get_document().get_iter_at_mark(nb.get_nth_page(1).get_document().get_insert()).get_line() + 1
 
 class TabsExtendPlugin(gedit.Plugin):
     def __init__(self):
