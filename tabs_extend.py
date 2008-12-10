@@ -20,7 +20,6 @@
 import gtk
 import gedit
 
-# TODO: Open last close (Ctrl+Shit+t)
 # TODO: Menu Close All (Ctrl+Shit+w)
 # TODO: Menu Close Others (Ctrl+Shit+o)
 
@@ -42,14 +41,16 @@ ACTIONS_UI = """
   <menubar name="MenuBar">
     <menu name="FileMenu" action="File">
       <placeholder name="FileOps_2">
-        <menuitem name="Undo close" action="UndoClose"/>
+        <menuitem name="UndoClose" action="UndoClose"/>
       </placeholder>
     </menu>
   </menubar>
 
   <popup name="NotebookPopup" action="NotebookPopupAction">
     <placeholder name="NotebookPupupOps_1">
-      <menuitem name="Undo close" action="UndoClose"/>
+      <menuitem name="UndoClose" action="UndoClose"/>
+      <menuitem name="CloseAll" action="CloseAll"/>
+      <menuitem name="CloseOthers" action="CloseOthers"/>
     </placeholder>
   </popup>
 </ui>
@@ -70,7 +71,7 @@ class TabsExtendWindowHelper:
     self.add_actions()
 
   def add_actions(self):
-    action = (
+    undoclose = (
       'UndoClose', # name
       'gtk-undo', # icon stock id
       'Undo close', # label
@@ -79,8 +80,26 @@ class TabsExtendWindowHelper:
       self.on_undo_close # callback
     )
 
+    closeall = (
+      'CloseAll', # name
+      'gtk-close', # icon stock id
+      'Close all', # label
+      '<Ctrl><Shift>J',# accelerator
+      'Open the folder containing the current document', # tooltip
+      self.on_close_all # callback
+    )
+
+    closeothers = (
+      'CloseOthers', # name
+      'gtk-close', # icon stock id
+      'Close others', # label
+      '<Ctrl><Shift>K',# accelerator
+      'Open the folder containing the current document', # tooltip
+      self.on_close_outher # callback
+    )
+
     action_group = gtk.ActionGroup(self.__class__.__name__)
-    action_group.add_actions([action])
+    action_group.add_actions([undoclose, closeall, closeothers])
 
     ui_manager = self.window.get_ui_manager()
     ui_manager.insert_action_group(action_group, 0)
@@ -109,11 +128,11 @@ class TabsExtendWindowHelper:
 
   def update_ui(self):
     """Update the sensitivities of actions."""
-
+    pass
     windowdata = self.window.get_data(self.__class__.__name__)
-    doc = self.window.get_active_document()
-    sensitive = len(self.tabs_closed) > 0
-    windowdata['action_group'].set_sensitive(sensitive)
+    windowdata['action_group'].get_action('UndoClose').set_sensitive(len(self.tabs_closed) > 0)
+    windowdata['action_group'].get_action('CloseAll').set_sensitive(self.notebook.get_n_pages() > 0)
+    windowdata['action_group'].get_action('CloseOthers').set_sensitive(self.notebook.get_n_pages() > 1)
 
   def get_notebook(self):
     return lookup_widget(self.window, 'GeditNotebook')[0]
@@ -172,6 +191,27 @@ class TabsExtendWindowHelper:
 
       self.tabs_closed.remove(tab)
     self.update_ui()
+
+  def on_close_all(self, action):
+    if self.notebook.get_n_pages() > 0:
+      self.window.close_all_tabs()
+      self.update_ui()
+
+  def on_close_outher(self, action):
+    if self.notebook.get_n_pages() > 1:
+      dont_close = self.window.get_active_tab()
+
+      tabs = []
+      for x in range(self.notebook.get_n_pages()):
+        tab = self.notebook.get_nth_page(x)
+        if tab != dont_close:
+          tabs.append(tab)
+
+      tabs.reverse()
+      for tab in tabs:
+        self.window.close_tab(tab)
+
+      self.update_ui()
 
 #nb.get_nth_page(1).get_document().get_iter_at_mark(nb.get_nth_page(1).get_document().get_insert()).get_line() + 1
 
