@@ -20,9 +20,9 @@
 import gtk
 import gedit
 
-# TODO: Reopen (Ctrl+Shit+t)
-# TODO: Menu Close All
-# TODO: Menu Close Others
+# TODO: Open last close (Ctrl+Shit+t)
+# TODO: Menu Close All (Ctrl+Shit+w)
+# TODO: Menu Close Others (Ctrl+Shit+o)
 
 class TabsExtendWindowHelper:
   handler_ids = []
