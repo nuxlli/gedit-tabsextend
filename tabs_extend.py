@@ -36,28 +36,84 @@ def lookup_widget(base, widget_name):
 
   return widgets
 
+# UI Manager XML
+ACTIONS_UI = """
+<ui>
+  <menubar name="MenuBar">
+    <menu name="FileMenu" action="File">
+      <placeholder name="FileOps_2">
+        <menuitem name="Undo close" action="UndoClose"/>
+      </placeholder>
+    </menu>
+  </menubar>
+
+  <popup name="NotebookPopup" action="NotebookPopupAction">
+    <placeholder name="NotebookPupupOps_1">
+      <menuitem name="Undo close" action="UndoClose"/>
+    </placeholder>
+  </popup>
+</ui>
+"""
+
 class TabsExtendWindowHelper:
   handler_ids = []
+  tabs_closed = []
 
   def __init__(self, plugin, window):
+    """Activate plugin."""
     self.window   = window
     self.notebook = self.get_notebook()
 
     self.add_all()
     self.handler_ids.append((self.notebook, self.notebook.connect("tab_added", self.tab_added_handler)))
     self.handler_ids.append((self.notebook, self.notebook.connect("tab_removed", self.tab_removed_handler)))
+    self.add_actions()
+
+  def add_actions(self):
+    action = (
+      'UndoClose', # name
+      'gtk-undo', # icon stock id
+      'Undo close', # label
+      '<Ctrl><Shift>T',# accelerator
+      'Open the folder containing the current document', # tooltip
+      self.on_undo_close # callback
+    )
+
+    action_group = gtk.ActionGroup(self.__class__.__name__)
+    action_group.add_actions([action])
+
+    ui_manager = self.window.get_ui_manager()
+    ui_manager.insert_action_group(action_group, 0)
+    ui_id = ui_manager.add_ui_from_string(ACTIONS_UI)
+
+    data = { 'action_group': action_group, 'ui_id': ui_id }
+    self.window.set_data(self.__class__.__name__, data)
+    self.update_ui()
 
   def deactivate(self):
+    """Deactivate plugin."""
     # disconnect
     for (handler_id, widget) in self.handler_ids:
       widget.disconnect(handler_id)
+
+    data = self.window.get_data(self.__class__.__name__)
+    ui_manager = self.window.get_ui_manager()
+    ui_manager.remove_ui(data['ui_id'])
+    ui_manager.remove_action_group(data['action_group'])
+    ui_manager.ensure_update()
+    self.window.set_data(self.__class__.__name__, None)
 
     self.window   = None
     self.notebook = None
     self.handles  = None
 
   def update_ui(self):
-    pass
+    """Update the sensitivities of actions."""
+
+    windowdata = self.window.get_data(self.__class__.__name__)
+    doc = self.window.get_active_document()
+    sensitive = len(self.tabs_closed) > 0
+    windowdata['action_group'].set_sensitive(sensitive)
 
   def get_notebook(self):
     return lookup_widget(self.window, 'GeditNotebook')[0]
@@ -82,11 +138,42 @@ class TabsExtendWindowHelper:
     self.add_middle_click_in_tab(tab)
 
   def tab_removed_handler(self, widget, tab):
+    self.save_tab_to_undo(tab)
+    self.update_ui()
     for (handler_id, widget) in self.handler_ids:
       if widget == tab:
         widget.disconnect(handler_id)
         self.handler_ids.remove(handler_id)
         break
+
+  def get_current_line(self, document):
+    """ Get current line for documento """
+    return document.get_iter_at_mark(document.get_insert()).get_line() + 1
+
+  # TODO: Save position tab
+  def save_tab_to_undo(self, tab):
+    """ Save close tabs """
+
+    document = tab.get_document()
+    if document.get_uri() != None:
+      self.tabs_closed.append((
+        document.get_uri(),
+        self.get_current_line(document)
+      ))
+
+  def on_undo_close(self, action):
+    if len(self.tabs_closed) > 0:
+      uri, line = tab = self.tabs_closed[-1:][0]
+
+      if uri == None:
+        self.window.create_tab(True)
+      else:
+        self.window.create_tab_from_uri(uri, None, line, True, True)
+
+      self.tabs_closed.remove(tab)
+    self.update_ui()
+
+#nb.get_nth_page(1).get_document().get_iter_at_mark(nb.get_nth_page(1).get_document().get_insert()).get_line() + 1
 
 class TabsExtendPlugin(gedit.Plugin):
     def __init__(self):
