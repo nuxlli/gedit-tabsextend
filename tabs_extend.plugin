@@ -1,7 +1,7 @@
-[Gedit Plugin]
+[Plugin]
 Loader=python
 Module=tabs_extend
-IAge=2
+IAge=3
 Name=Tabs Extend
 Description=Tabs extend options for gedit editor
 Authors=Éverton Ribeiro <nuxlli@gmail.com>
